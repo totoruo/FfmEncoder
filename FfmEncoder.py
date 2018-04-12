@@ -7,14 +7,15 @@ def hashstr(str, nr_bins=1e+6):
 
 
 class FfmEncoder():
-    def __init__(self, field_names, nthread=1):
+    def __init__(self, field_names, label_name, nthread=1):
         self.field_names = field_names
         self.nthread = nthread
+        self.label = label_name
 
     def gen_feats(self, row):
         feats = []
-        for i, field in enumerate(self.field_names, start=1):
-            value = row[i]  # row[0] is label
+        for field in self.field_names:
+            value = row[field]
             key = field + '-' + str(value)
             feats.append(key)
         return feats
@@ -28,12 +29,12 @@ class FfmEncoder():
         sub_df = df.iloc[i * lines_per_thread: (i + 1) * lines_per_thread]
         tmp_path = path + '_tmp_{0}'.format(i)
         with open(tmp_path, 'w') as f:
-            for row in sub_df.values:
+            for index,row in sub_df.iterrows():
                 feats = []
                 for i, feat in enumerate(self.gen_feats(row)):
                     feats.append((i, feat))
                 feats = self.gen_hashed_fm_feats(feats)
-                f.write(str(int(row[0])) + ' ' + ' '.join(feats) + '\n')
+                f.write(str(int(row[self.label])) + ' ' + ' '.join(feats) + '\n')
 
     def parallel_convert(self, df, path):
         processes = []
@@ -59,12 +60,5 @@ class FfmEncoder():
     def transform(self, df, path):
         print('converting data......')
         self.parallel_convert(df, path)
-        print('catting temp data......')
         self.cat(path)
-        print('deleting temp data......')
         self.delete(path)
-        print('transform done!')
-
-
-
-
